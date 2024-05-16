@@ -52,6 +52,8 @@ import com.example.sdsm.presentation.components.CountCard
 import com.example.sdsm.presentation.components.DeleteDialog
 import com.example.sdsm.presentation.components.studySessionsList
 import com.example.sdsm.presentation.components.tasksList
+import com.example.sdsm.presentation.destinations.TaskScreenRouteDestination
+import com.example.sdsm.presentation.task.TaskScreenNavArgs
 import com.example.sdsm.sessions
 import com.example.sdsm.subjects
 import com.example.sdsm.tasks
@@ -60,10 +62,45 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.collectLatest
 
+data class SubjectScreenNavArgs(
+    val subjectId: Int
+)
 
-@ExperimentalMaterial3Api
+@Destination(navArgsDelegate = SubjectScreenNavArgs::class)
 @Composable
-fun SubjectScreen(){
+fun SubjectScreenRoute(
+    navigator: DestinationsNavigator
+) {
+    val viewModel: SubjectViewModel = hiltViewModel()
+/*
+    val state by viewModel.state.collectAsStateWithLifecycle()
+*/
+    SubjectScreen(
+       /* state = state,
+        onEvent = viewModel::onEvent,
+        snackbarEvent = viewModel.snackbarEventFlow,*/
+        onBackButtonClick = { navigator.navigateUp() },
+        onAddTaskButtonClick = {
+            val navArg = TaskScreenNavArgs(taskId = null, subjectId = /*state.currentSubjectId*/-1)
+            navigator.navigate(TaskScreenRouteDestination(navArgs = navArg))
+        },
+        onTaskCardClick = { taskId ->
+            val navArg = TaskScreenNavArgs(taskId = taskId, subjectId = null)
+            navigator.navigate(TaskScreenRouteDestination(navArgs = navArg))
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SubjectScreen(
+    /*state: SubjectState,
+    onEvent: (SubjectEvent) -> Unit,
+    snackbarEvent: SharedFlow<SnackbarEvent>,*/
+    onBackButtonClick: () -> Unit,
+    onAddTaskButtonClick: () -> Unit,
+    onTaskCardClick: (Int?) -> Unit
+){
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val listState = rememberLazyListState()
@@ -122,7 +159,7 @@ fun SubjectScreen(){
         topBar = {
             SubjectScreenTopBar(
                 title = "EL",
-                onBackButtonClick = /*onBackButtonClick*/{},
+                onBackButtonClick = onBackButtonClick,
                 onDeleteButtonClick = { isDeleteSubjectDialogOpen = true },
                 onEditButtonClick = { isEditSubjectDialogOpen = true },
                 scrollBehavior = scrollBehavior
@@ -130,7 +167,7 @@ fun SubjectScreen(){
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = /*onAddTaskButtonClick*/{},
+                onClick = onAddTaskButtonClick,
                 icon = { Icon(imageVector = Icons.Default.Add, contentDescription = "Add") },
                 text = { Text(text = "Add Task") },
                 expanded = isFABExpanded
@@ -160,7 +197,7 @@ fun SubjectScreen(){
                         "Click the + button to add new task.",
                 tasks = /*state.upcomingTasks*/ tasks,
                 onCheckBoxClick = { /*onEvent(SubjectEvent.OnTaskIsCompleteChange(it)) */},
-                onTaskCardClick = /*onTaskCardClick*/ {}
+                onTaskCardClick = onTaskCardClick
             )
             item {
                 Spacer(modifier = Modifier.height(20.dp))
@@ -171,7 +208,7 @@ fun SubjectScreen(){
                         "Click the check box on completion of task.",
                 tasks = /*state.completedTasks*/ tasks,
                 onCheckBoxClick = { /*onEvent(SubjectEvent.OnTaskIsCompleteChange(it))*/ },
-                onTaskCardClick = /*onTaskCardClick*/ {}
+                onTaskCardClick = onTaskCardClick
             )
             item {
                 Spacer(modifier = Modifier.height(20.dp))
