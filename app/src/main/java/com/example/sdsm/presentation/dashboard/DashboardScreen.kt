@@ -37,7 +37,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.modifier.modifierLocalConsumer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -58,9 +57,6 @@ import com.example.sdsm.presentation.destinations.SubjectScreenRouteDestination
 import com.example.sdsm.presentation.destinations.TaskScreenRouteDestination
 import com.example.sdsm.presentation.subject.SubjectScreenNavArgs
 import com.example.sdsm.presentation.task.TaskScreenNavArgs
-import com.example.sdsm.sessions
-import com.example.sdsm.subjects
-import com.example.sdsm.tasks
 import com.example.sdsm.util.SnackbarEvent
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootNavGraph
@@ -68,10 +64,8 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.collectLatest
 
-/*
-@RootNavGraph
-*/
-@Destination(start = true)
+@RootNavGraph(start = true)
+@Destination
 @Composable
 fun DashboardScreenRoute(
     navigator: DestinationsNavigator
@@ -104,6 +98,7 @@ fun DashboardScreenRoute(
     )
 }
 
+
 @Composable
 private fun DashboardScreen(
     state: DashboardState,
@@ -114,7 +109,7 @@ private fun DashboardScreen(
     onSubjectCardClick: (Int?) -> Unit,
     onTaskCardClick: (Int?) -> Unit,
     onStartSessionButtonClick: () -> Unit
-){
+) {
 
     var isAddSubjectDialogOpen by rememberSaveable { mutableStateOf(false) }
     var isDeleteSessionDialogOpen by rememberSaveable { mutableStateOf(false) }
@@ -135,7 +130,6 @@ private fun DashboardScreen(
             }
         }
     }
-
 
     AddSubjectDialog(
         isOpen = isAddSubjectDialogOpen,
@@ -180,7 +174,7 @@ private fun DashboardScreen(
                         .padding(12.dp),
                     subjectCount = state.totalSubjectCount,
                     studiedHours = state.totalStudiedHours.toString(),
-                    goalHours = state.totalGoalStudyHours.toString(),
+                    goalHours = state.totalGoalStudyHours.toString()
                 )
             }
             item {
@@ -207,7 +201,7 @@ private fun DashboardScreen(
                         "Click the + button in subject screen to add new task.",
                 tasks = tasks,
                 onCheckBoxClick = { onEvent(DashboardEvent.OnTaskIsCompleteChange(it)) },
-                onTaskCardClick =  onTaskCardClick
+                onTaskCardClick = onTaskCardClick
             )
             item {
                 Spacer(modifier = Modifier.height(20.dp))
@@ -216,7 +210,7 @@ private fun DashboardScreen(
                 sectionTitle = "RECENT STUDY SESSIONS",
                 emptyListText = "You don't have any recent study sessions.\n " +
                         "Start a study session to begin recording your progress.",
-                sessions = recentSessions ,
+                sessions = recentSessions,
                 onDeleteIconClick = {
                     onEvent(DashboardEvent.OnDeleteSessionButtonClick(it))
                     isDeleteSessionDialogOpen = true
@@ -317,7 +311,7 @@ private fun SubjectCardsSection(
                 SubjectCard(
                     subjectName = subject.name,
                     gradientColors = subject.colors.map { Color(it) },
-                    onClick = {onSubjectCardClick(subject.subjectId)}
+                    onClick = { onSubjectCardClick(subject.subjectId) }
                 )
             }
         }

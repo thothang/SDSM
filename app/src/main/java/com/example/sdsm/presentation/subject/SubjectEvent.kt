@@ -4,7 +4,8 @@ import androidx.compose.ui.graphics.Color
 import com.example.sdsm.domain.model.Session
 import com.example.sdsm.domain.model.Task
 
-sealed class SubjectEvent{
+
+sealed class SubjectEvent {
     data object UpdateSubject : SubjectEvent()
     data object DeleteSubject : SubjectEvent()
     data object DeleteSession : SubjectEvent()

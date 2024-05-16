@@ -33,7 +33,7 @@ class SubjectViewModel @Inject constructor(
     private val taskRepository: TaskRepository,
     private val sessionRepository: SessionRepository,
     savedStateHandle: SavedStateHandle
-):ViewModel() {
+) : ViewModel() {
 
     private val navArgs: SubjectScreenNavArgs = savedStateHandle.navArgs()
 

@@ -70,6 +70,7 @@ fun SubjectScreenRoute(
 ) {
     val viewModel: SubjectViewModel = hiltViewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
+
     SubjectScreen(
         state = state,
         onEvent = viewModel::onEvent,
@@ -95,7 +96,7 @@ private fun SubjectScreen(
     onBackButtonClick: () -> Unit,
     onAddTaskButtonClick: () -> Unit,
     onTaskCardClick: (Int?) -> Unit
-){
+) {
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val listState = rememberLazyListState()
@@ -132,9 +133,9 @@ private fun SubjectScreen(
         isOpen = isEditSubjectDialogOpen,
         subjectName = state.subjectName,
         goalHours = state.goalStudyHours,
-        selectedColors = state.subjectCardColors,
         onSubjectNameChange = { onEvent(SubjectEvent.OnSubjectNameChange(it)) },
         onGoalHoursChange = { onEvent(SubjectEvent.OnGoalStudyHoursChange(it)) },
+        selectedColors = state.subjectCardColors,
         onColorChange = { onEvent(SubjectEvent.OnSubjectCardColorChange(it)) },
         onDismissRequest = { isEditSubjectDialogOpen = false },
         onConfirmButtonClick = {
@@ -187,8 +188,7 @@ private fun SubjectScreen(
                 expanded = isFABExpanded
             )
         }
-
-    ){ paddingValue ->
+    ) { paddingValue ->
         LazyColumn(
             state = listState,
             modifier = Modifier
@@ -253,7 +253,7 @@ private fun SubjectScreenTopBar(
     LargeTopAppBar(
         scrollBehavior = scrollBehavior,
         navigationIcon = {
-            IconButton(onClick =  onBackButtonClick) {
+            IconButton(onClick = onBackButtonClick) {
                 Icon(
                     imageVector = Icons.Default.ArrowBack,
                     contentDescription = "navigate back"

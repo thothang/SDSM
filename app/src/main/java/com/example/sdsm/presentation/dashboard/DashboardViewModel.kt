@@ -12,6 +12,7 @@ import com.example.sdsm.domain.repository.SubjectRepository
 import com.example.sdsm.domain.repository.TaskRepository
 import com.example.sdsm.util.SnackbarEvent
 import com.example.sdsm.util.toHours
+
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,15 +24,15 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
     private val subjectRepository: SubjectRepository,
     private val sessionRepository: SessionRepository,
     private val taskRepository: TaskRepository
-):ViewModel() {
+) : ViewModel() {
 
     private val _state = MutableStateFlow(DashboardState())
-
     val state = combine(
         _state,
         subjectRepository.getTotalSubjectCount(),
@@ -103,11 +104,23 @@ class DashboardViewModel @Inject constructor(
     }
 
     private fun updateTask(task: Task) {
-        TODO("Not yet implemented")
-    }
-
-    private fun deleteSession() {
-        TODO("Not yet implemented")
+        viewModelScope.launch {
+            try {
+                taskRepository.upsertTask(
+                    task = task.copy(isComplete = !task.isComplete)
+                )
+                _snackbarEventFlow.emit(
+                    SnackbarEvent.ShowSnackbar(message = "Saved in completed tasks.")
+                )
+            } catch (e: Exception) {
+                _snackbarEventFlow.emit(
+                    SnackbarEvent.ShowSnackbar(
+                        "Couldn't update task. ${e.message}",
+                        SnackbarDuration.Long
+                    )
+                )
+            }
+        }
     }
 
     private fun saveSubject() {
@@ -140,4 +153,25 @@ class DashboardViewModel @Inject constructor(
             }
         }
     }
+
+    private fun deleteSession() {
+        viewModelScope.launch {
+            try {
+                state.value.session?.let {
+                    sessionRepository.deleteSession(it)
+                    _snackbarEventFlow.emit(
+                        SnackbarEvent.ShowSnackbar(message = "Session deleted successfully")
+                    )
+                }
+            } catch (e: Exception) {
+                _snackbarEventFlow.emit(
+                    SnackbarEvent.ShowSnackbar(
+                        message = "Couldn't delete session. ${e.message}",
+                        duration = SnackbarDuration.Long
+                    )
+                )
+            }
+        }
+    }
+
 }

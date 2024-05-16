@@ -5,6 +5,7 @@ import com.example.sdsm.domain.model.Session
 import com.example.sdsm.domain.model.Subject
 import com.example.sdsm.domain.model.Task
 
+
 data class SubjectState(
     val currentSubjectId: Int? = null,
     val subjectName: String = "",

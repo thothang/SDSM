@@ -4,7 +4,8 @@ import androidx.compose.ui.graphics.Color
 import com.example.sdsm.domain.model.Session
 import com.example.sdsm.domain.model.Task
 
-sealed class DashboardEvent{
+
+sealed class DashboardEvent {
     data object SaveSubject : DashboardEvent()
     data object DeleteSession : DashboardEvent()
     data class OnDeleteSessionButtonClick(val session: Session): DashboardEvent()

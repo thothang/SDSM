@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import com.example.sdsm.domain.model.Session
 import com.example.sdsm.domain.model.Subject
 
+
 data class DashboardState(
     val totalSubjectCount: Int = 0,
     val totalStudiedHours: Float = 0f,
