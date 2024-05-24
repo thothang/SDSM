@@ -31,11 +31,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,60 +51,62 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.sdsm.presentation.components.DeleteDialog
 import com.example.sdsm.presentation.components.SubjectListBottomSheet
 import com.example.sdsm.presentation.components.studySessionsList
-import com.example.sdsm.sessions
-import com.example.sdsm.subjects
+import com.example.sdsm.presentation.theme.Red
+import com.example.sdsm.util.Constants.ACTION_SERVICE_CANCEL
+import com.example.sdsm.util.Constants.ACTION_SERVICE_START
+import com.example.sdsm.util.Constants.ACTION_SERVICE_STOP
+import com.example.sdsm.util.SnackbarEvent
 import com.ramcosta.composedestinations.annotation.DeepLink
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlin.time.DurationUnit
 
 @Destination(
-   /* deepLinks = [
+    deepLinks = [
         DeepLink(
             action = Intent.ACTION_VIEW,
             uriPattern = "study_smart://dashboard/session"
         )
-    ]*/
+    ]
 )
 @Composable
 fun SessionScreenRoute(
     navigator: DestinationsNavigator,
-    /*timerService: StudySessionTimerService*/
+    timerService: StudySessionTimerService
 ) {
     val viewModel: SessionViewModel = hiltViewModel()
-/*
     val state by viewModel.state.collectAsStateWithLifecycle()
-*/
 
     SessionScreen(
-        /*state = state,
+        state = state,
         snackbarEvent = viewModel.snackbarEventFlow,
         onEvent = viewModel::onEvent,
-        timerService = timerService,*/
-        onBackButtonClick = { navigator.navigateUp() }
+        onBackButtonClick = { navigator.navigateUp() },
+        timerService = timerService
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SessionScreen(
-    /*state: SessionState,
+    state: SessionState,
     snackbarEvent: SharedFlow<SnackbarEvent>,
     onEvent: (SessionEvent) -> Unit,
-    timerService: StudySessionTimerService,*/
-    onBackButtonClick: () -> Unit
+    onBackButtonClick: () -> Unit,
+    timerService: StudySessionTimerService
+) {
 
-){
-
-    /*val hours by timerService.hours
+    val hours by timerService.hours
     val minutes by timerService.minutes
     val seconds by timerService.seconds
-    val currentTimerState by timerService.currentTimerState*/
+    val currentTimerState by timerService.currentTimerState
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -113,16 +117,42 @@ private fun SessionScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
 
+    LaunchedEffect(key1 = true) {
+        snackbarEvent.collectLatest { event ->
+            when (event) {
+                is SnackbarEvent.ShowSnackbar -> {
+                    snackbarHostState.showSnackbar(
+                        message = event.message,
+                        duration = event.duration
+                    )
+                }
+
+                SnackbarEvent.NavigateUp -> {}
+            }
+        }
+    }
+
+    LaunchedEffect(key1 = state.subjects) {
+        val subjectId = timerService.subjectId.value
+        onEvent(
+            SessionEvent.UpdateSubjectIdAndRelatedSubject(
+                subjectId = subjectId,
+                relatedToSubject = state.subjects.find { it.subjectId == subjectId }?.name
+            )
+        )
+    }
+
+
     SubjectListBottomSheet(
         sheetState = sheetState,
         isOpen = isBottomSheetOpen,
-        subjects = /*state.*/subjects,
+        subjects = state.subjects,
         onDismissRequest = { isBottomSheetOpen = false },
         onSubjectClicked = { subject ->
             scope.launch { sheetState.hide() }.invokeOnCompletion {
                 if (!sheetState.isVisible) isBottomSheetOpen = false
             }
-            /* onEvent(TaskEvent.OnRelatedSubjectSelect(subject))*/
+            onEvent(SessionEvent.OnRelatedSubjectChange(subject))
         }
     )
 
@@ -133,12 +163,13 @@ private fun SessionScreen(
                 "This action can not be undone.",
         onDismissRequest = { isDeleteDialogOpen = false },
         onConfirmButtonClick = {
-            /*onEvent(SessionEvent.DeleteSession)*/
+            onEvent(SessionEvent.DeleteSession)
             isDeleteDialogOpen = false
         }
     )
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             SessionScreenTopBar(onBackButtonClick = onBackButtonClick)
         }
@@ -153,9 +184,9 @@ private fun SessionScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(1f),
-                    hours = /*hours*/"",
-                    minutes = /*minutes*/"",
-                    seconds = /*seconds*/""
+                    hours = hours,
+                    minutes = minutes,
+                    seconds = seconds
                 )
             }
             item {
@@ -163,9 +194,9 @@ private fun SessionScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 12.dp),
-                    relatedToSubject = /*state.relatedToSubject ?: ""*/"English",
+                    relatedToSubject = state.relatedToSubject ?: "",
                     selectSubjectButtonClick = { isBottomSheetOpen = true },
-                    seconds = /*seconds*/""
+                    seconds = seconds
                 )
             }
             item {
@@ -174,7 +205,7 @@ private fun SessionScreen(
                         .fillMaxWidth()
                         .padding(12.dp),
                     startButtonClick = {
-                       /* if (state.subjectId != null && state.relatedToSubject != null) {
+                        if (state.subjectId != null && state.relatedToSubject != null) {
                             ServiceHelper.triggerForegroundService(
                                 context = context,
                                 action = if (currentTimerState == TimerState.STARTED) {
@@ -184,36 +215,36 @@ private fun SessionScreen(
                             timerService.subjectId.value = state.subjectId
                         } else {
                             onEvent(SessionEvent.NotifyToUpdateSubject)
-                        }*/
+                        }
                     },
                     cancelButtonClick = {
-                        /*ServiceHelper.triggerForegroundService(
+                        ServiceHelper.triggerForegroundService(
                             context = context,
                             action = ACTION_SERVICE_CANCEL
-                        )*/
+                        )
                     },
                     finishButtonClick = {
-                     /*   val duration = timerService.duration.toLong(DurationUnit.SECONDS)
+                        val duration = timerService.duration.toLong(DurationUnit.SECONDS)
                         if (duration >= 36) {
                             ServiceHelper.triggerForegroundService(
                                 context = context,
                                 action = ACTION_SERVICE_CANCEL
                             )
                         }
-                        onEvent(SessionEvent.SaveSession(duration))*/
+                        onEvent(SessionEvent.SaveSession(duration))
                     },
-                    /*timerState = currentTimerState,
-                    seconds = seconds*/
+                    timerState = currentTimerState,
+                    seconds = seconds
                 )
             }
             studySessionsList(
                 sectionTitle = "STUDY SESSIONS HISTORY",
                 emptyListText = "You don't have any recent study sessions.\n " +
                         "Start a study session to begin recording your progress.",
-                sessions = /*state.*/sessions,
+                sessions = state.sessions,
                 onDeleteIconClick = { session ->
                     isDeleteDialogOpen = true
-                    /*onEvent(SessionEvent.OnDeleteSessionButtonClick(session))*/
+                    onEvent(SessionEvent.OnDeleteSessionButtonClick(session))
                 }
             )
         }
@@ -256,13 +287,8 @@ private fun TimerSection(
                 .size(250.dp)
                 .border(5.dp, MaterialTheme.colorScheme.surfaceVariant, CircleShape)
         )
-        Text(
-            text = "00:52:32",
-            style = MaterialTheme.typography.titleLarge.copy(fontSize = 45.sp)
-
-        )
         Row {
-          /*  AnimatedContent(
+            AnimatedContent(
                 targetState = hours,
                 label = hours,
                 transitionSpec = { timerTextAnimation() }
@@ -290,10 +316,11 @@ private fun TimerSection(
                 Text(
                     text = seconds,
                     style = MaterialTheme.typography.titleLarge.copy(fontSize = 45.sp)
-                )*/
+                )
             }
         }
     }
+}
 
 @Composable
 private fun RelatedToSubjectSection(
@@ -313,12 +340,12 @@ private fun RelatedToSubjectSection(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = /*relatedToSubject*/"English",
+                text = relatedToSubject,
                 style = MaterialTheme.typography.bodyLarge
             )
             IconButton(
                 onClick = selectSubjectButtonClick,
-                /*enabled = seconds == "00"*/
+                enabled = seconds == "00"
             ) {
                 Icon(
                     imageVector = Icons.Default.ArrowDropDown,
@@ -335,10 +362,8 @@ private fun ButtonsSection(
     startButtonClick: () -> Unit,
     cancelButtonClick: () -> Unit,
     finishButtonClick: () -> Unit,
-/*
     timerState: TimerState,
-*//*
-    seconds: String*/
+    seconds: String
 ) {
     Row(
         modifier = modifier,
@@ -346,9 +371,7 @@ private fun ButtonsSection(
     ) {
         Button(
             onClick = cancelButtonClick,
-/*
             enabled = seconds != "00" && timerState != TimerState.STARTED
-*/
         ) {
             Text(
                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
@@ -357,30 +380,24 @@ private fun ButtonsSection(
         }
         Button(
             onClick = startButtonClick,
-           /* colors = ButtonDefaults.buttonColors(
+            colors = ButtonDefaults.buttonColors(
                 containerColor = if (timerState == TimerState.STARTED) Red
                 else MaterialTheme.colorScheme.primary,
                 contentColor = Color.White
-            )*/
+            )
         ) {
             Text(
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                text = "Start"
-            )
-            /*Text(
                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                 text = when (timerState) {
                     TimerState.STARTED -> "Stop"
                     TimerState.STOPPED -> "Resume"
                     else -> "Start"
                 }
-            )*/
+            )
         }
         Button(
             onClick = finishButtonClick,
-/*
             enabled = seconds != "00" && timerState != TimerState.STARTED
-*/
         ) {
             Text(
                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
@@ -396,5 +413,8 @@ private fun timerTextAnimation(duration: Int = 600): ContentTransform {
             slideOutVertically(animationSpec = tween(duration)) { fullHeight -> -fullHeight } +
             fadeOut(animationSpec = tween(duration))
 }
+
+
+
 
 
